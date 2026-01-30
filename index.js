@@ -1,11 +1,10 @@
-require('dotenv').config();
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const OpenAI = require("openai");
 const axios = require("axios");
 
-// ================= KEYS =================
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const OPENAI_KEY = process.env.OPENAI_KEY;
+// ================= KEYS (pre-filled for testing) =================
+const DISCORD_TOKEN = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.G5Gdd6.KESpHLt9X313hUa3pykyEmHnHgQsTBSAgUNBaE";
+const OPENAI_KEY = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.G5Gdd6.KESpHLt9X313hUa3pykyEmHnHgQsTBSAgUNBaE";
 
 // ================= CLIENT =================
 const client = new Client({
@@ -109,7 +108,6 @@ client.on("messageCreate", async (msg) => {
     const reply = await aiReply(msg.author.id, msg.content, imageUrl);
     await msg.reply(reply);
 
-    // Escalation detection
     if (reply.toLowerCase().includes("notify staff") || content.includes("still not working")) {
       await notifyStaff(msg.guild, `User ${msg.author.tag} issue: ${msg.content}`);
     }
