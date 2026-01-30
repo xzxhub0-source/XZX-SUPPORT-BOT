@@ -21,12 +21,12 @@ const openai = new OpenAI({
 });
 
 // ================= CONFIG =================
-const ALLOWED_SERVER_NAME = "XZX HUB";
-const SUPPORT_CHANNEL_NAME = "support";
+const SUPPORT_CHANNELS = ["support", "help", "tickets"]; // Add all support channel names here
 const STAFF_ALERT_CHANNEL_NAME = "staff-alerts";
 const STAFF_PING = "@XZX SUPPORT TEAM";
 const KEY_API = "https://xwre.vercel.app/api/key";
 
+// In-memory conversation memory
 const memory = new Map();
 
 // ================= UTILS =================
@@ -93,17 +93,10 @@ Rules:
   return reply;
 }
 
-// ================= SERVER LOCK =================
+// ================= READY =================
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
-
-  for (const guild of client.guilds.cache.values()) {
-    if (guild.name !== ALLOWED_SERVER_NAME) {
-      console.error(`Unauthorized server: ${guild.name}`);
-      await client.destroy();
-      process.exit(1); // BRICK BOT
-    }
-  }
+  console.log(`Listening in channels: ${SUPPORT_CHANNELS.join(", ")}`);
 });
 
 // ================= MESSAGE HANDLER =================
@@ -111,9 +104,9 @@ client.on("messageCreate", async (msg) => {
   if (msg.author.bot) return;
 
   const guild = msg.guild;
-  if (!guild || guild.name !== ALLOWED_SERVER_NAME) return;
+  if (!guild) return;
 
-  if (msg.channel.name !== SUPPORT_CHANNEL_NAME) return;
+  if (!SUPPORT_CHANNELS.includes(msg.channel.name)) return;
 
   const content = msg.content.toLowerCase();
 
