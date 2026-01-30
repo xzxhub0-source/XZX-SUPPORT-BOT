@@ -1,9 +1,12 @@
-require("dotenv").config();
-
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const OpenAI = require("openai");
 const axios = require("axios");
 
+// ================= KEYS (TEMPORARY) =================
+const DISCORD_TOKEN = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.GUiAjM.n_WU0WTVmg2B6hFPpNBzHJ_GoVyJTA-Ff8EuQ0";
+const OPENAI_KEY = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.GUiAjM.n_WU0WTVmg2B6hFPpNBzHJ_GoVyJTA-Ff8EuQ0";
+
+// ================= CLIENT =================
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -14,17 +17,16 @@ const client = new Client({
 });
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_KEY
+  apiKey: OPENAI_KEY
 });
 
 // ================= CONFIG =================
 const ALLOWED_SERVER_NAME = "XZX HUB";
 const SUPPORT_CHANNEL_NAME = "support";
-const STAFF_PING = "@XZX SUPPORT TEAM";
 const STAFF_ALERT_CHANNEL_NAME = "staff-alerts";
+const STAFF_PING = "@XZX SUPPORT TEAM";
 const KEY_API = "https://xwre.vercel.app/api/key";
 
-// In-memory conversation storage
 const memory = new Map();
 
 // ================= UTILS =================
@@ -91,7 +93,7 @@ Rules:
   return reply;
 }
 
-// ================= SECURITY SCANNER =================
+// ================= SERVER LOCK =================
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -152,4 +154,5 @@ client.on("messageCreate", async (msg) => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+// ================= LOGIN =================
+client.login(DISCORD_TOKEN);
