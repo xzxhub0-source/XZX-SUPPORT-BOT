@@ -21,12 +21,11 @@ const openai = new OpenAI({
 });
 
 // ================= CONFIG =================
-const SUPPORT_CHANNELS = ["support", "help", "tickets"]; // Add all support channel names here
+const SUPPORT_CHANNELS = ["support", "help", "tickets"]; // Add more channels if needed
 const STAFF_ALERT_CHANNEL_NAME = "staff-alerts";
 const STAFF_PING = "@XZX SUPPORT TEAM";
 const KEY_API = "https://xwre.vercel.app/api/key";
 
-// In-memory conversation memory
 const memory = new Map();
 
 // ================= UTILS =================
