@@ -1,12 +1,6 @@
-const { Client, GatewayIntentBits, Partials } = require("discord.js");
-const OpenAI = require("openai");
-const axios = require("axios");
+import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// ================= KEYS (pre-filled for testing) =================
-const DISCORD_TOKEN = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.G5Gdd6.KESpHLt9X313hUa3pykyEmHnHgQsTBSAgUNBaE";
-const OPENAI_KEY = "MTQzNDUzMzc5Nzg1MjA4NjQ1Mw.G5Gdd6.KESpHLt9X313hUa3pykyEmHnHgQsTBSAgUNBaE";
-
-// ================= CLIENT =================
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -16,107 +10,75 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
-const openai = new OpenAI({ apiKey: OPENAI_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// ================= CONFIG =================
-const SUPPORT_CHANNELS = ["support", "help", "tickets"];
-const STAFF_ALERT_CHANNEL_NAME = "staff-alerts";
-const STAFF_PING = "@XZX SUPPORT TEAM";
-const KEY_API = "https://xwre.vercel.app/api/key";
+const ALLOWED_CHANNELS = [
+  "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂",
+  "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂•slow",
+  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v1",
+  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v2",
+  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v3",
+  "⚠️•𝘽𝙐𝙂-𝙍𝙀𝙋𝙊𝙍𝙏"
+];
 
-const memory = new Map();
+const HELP_TRIGGERS = [
+  "help",
+  "not working",
+  "doesn't work",
+  "error",
+  "bug",
+  "issue",
+  "problem"
+];
 
-// ================= UTILS =================
-async function fetchKey() {
-  const res = await axios.get(KEY_API);
-  return res.data;
-}
-
-async function notifyStaff(guild, issue) {
-  const channel = guild.channels.cache.find(c => c.name === STAFF_ALERT_CHANNEL_NAME);
-  if (!channel) return;
-  channel.send(`🚨 SUPPORT NEEDED\n${STAFF_PING}\nIssue: ${issue}`);
-}
-
-async function aiReply(userId, text, imageUrl = null) {
-  const history = memory.get(userId) || [];
-  const messages = [
-    {
-      role: "system",
-      content: `
-You are XZX Support Bot.
-- Be casual and helpful.
-- Ask ONE question at a time.
-- Focus on executor, mobile/PC, and errors.
-- Never send users to the key website.
-- If stuck, say staff will be notified.
-- Never mention AI or ChatGPT.
-      `
-    },
-    ...history
-  ];
-
-  if (imageUrl) {
-    messages.push({ role: "user", content: `${text} [Image: ${imageUrl}]` });
-  } else {
-    messages.push({ role: "user", content: text });
-  }
-
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages
-  });
-
-  const reply = res.choices[0].message.content;
-
-  history.push({ role: "user", content: text });
-  history.push({ role: "assistant", content: reply });
-  memory.set(userId, history.slice(-10));
-
-  return reply;
-}
-
-// ================= READY =================
 client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  console.log(`Listening in channels: ${SUPPORT_CHANNELS.join(", ")}`);
+  console.log(`✅ XZX Support Bot logged in as ${client.user.tag}`);
 });
 
-// ================= MESSAGE HANDLER =================
-client.on("messageCreate", async (msg) => {
-  if (msg.author.bot) return;
-  if (!SUPPORT_CHANNELS.includes(msg.channel.name)) return;
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!ALLOWED_CHANNELS.includes(message.channel.name)) return;
 
-  const content = msg.content.toLowerCase();
-  const imageUrl = msg.attachments.first()?.url || null;
+  const content = message.content.toLowerCase();
+  const needsHelp = HELP_TRIGGERS.some(t => content.includes(t));
+  const hasImage = message.attachments.size > 0;
 
-  // Key request
-  if (content.includes("key")) {
-    try {
-      const key = await fetchKey();
-      return msg.reply(
-        `This is a common issue — keys refresh daily.\n\nHere’s your key:\n\`${key}\`\n\nIf this doesn’t work, staff will be notified.`
-      );
-    } catch {
-      await notifyStaff(msg.guild, "Failed to fetch key");
-      return msg.reply("Could not retrieve the key. Staff has been notified.");
-    }
-  }
+  if (!needsHelp && !hasImage) return;
 
-  // AI support
   try {
-    const reply = await aiReply(msg.author.id, msg.content, imageUrl);
-    await msg.reply(reply);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    if (reply.toLowerCase().includes("notify staff") || content.includes("still not working")) {
-      await notifyStaff(msg.guild, `User ${msg.author.tag} issue: ${msg.content}`);
+    let prompt = `
+You are XZX HUB support staff.
+Help the user troubleshoot issues with XZX Hub.
+Ask clear follow-up questions.
+If key-related, give ONLY this link:
+https://xwre.vercel.app/api/key
+Never paste the raw key.
+If executor-related, ask which executor and device.
+If unsure, say staff will be notified.
+`;
+
+    if (hasImage) {
+      prompt += "\nUser sent an image describing a problem. Analyze it.";
     }
+
+    prompt += `\nUser message: "${message.content}"`;
+
+    const result = await model.generateContent(prompt);
+    const reply = result.response.text();
+
+    await message.reply(reply);
+
   } catch (err) {
     console.error(err);
-    await notifyStaff(msg.guild, "AI error during support");
-    msg.reply("Something broke on my side. Staff has been notified.");
+
+    await message.reply(
+      `🚨 **SUPPORT NEEDED**  
+@XZX SUPPORT TEAM  
+**Issue:** ${message.content}`
+    );
   }
 });
 
-// ================= LOGIN =================
-client.login(DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
