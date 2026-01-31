@@ -1,84 +1,139 @@
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
 
+dotenv.config();
+
+/* ===============================
+   ENV CHECK
+================================ */
+if (!process.env.DISCORD_TOKEN) {
+  throw new Error("DISCORD_TOKEN is missing");
+}
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY is missing");
+}
+
+/* ===============================
+   DISCORD CLIENT
+================================ */
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ],
-  partials: [Partials.Channel]
+  ]
 });
 
+/* ===============================
+   GEMINI SETUP
+================================ */
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const ALLOWED_CHANNELS = [
-  "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂",
-  "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂•slow",
-  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v1",
-  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v2",
-  "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v3",
-  "⚠️•𝘽𝙐𝙂-𝙍𝙀𝙋𝙊𝙍𝙏"
-];
+/* ===============================
+   SYSTEM PROMPT (AI BRAIN)
+================================ */
+const SYSTEM_PROMPT = `
+You are XZX Support Bot for the XZX Hub Discord.
 
-const HELP_TRIGGERS = [
-  "help",
-  "not working",
-  "doesn't work",
-  "error",
-  "bug",
-  "issue",
-  "problem"
-];
+Your job is to HELP users first, not immediately ping staff.
 
-client.once("ready", () => {
-  console.log(`✅ XZX Support Bot logged in as ${client.user.tag}`);
-});
+Rules:
+- Always try to troubleshoot first
+- Ask follow-up questions if unclear
+- Be casual and helpful
+- Do NOT ping staff unless necessary
 
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  if (!ALLOWED_CHANNELS.includes(message.channel.name)) return;
+KNOWN INFO:
+- XZX Hub keys refresh DAILY
+- Key site: https://xwre.vercel.app/api/key
+- Delta executor works on mobile
+- Most issues = expired key or wrong executor
 
-  const content = message.content.toLowerCase();
-  const needsHelp = HELP_TRIGGERS.some(t => content.includes(t));
-  const hasImage = message.attachments.size > 0;
+ONLY escalate if:
+- User says it still doesn’t work after steps
+- User says they tried everything
+- User explicitly asks for staff
 
-  if (!needsHelp && !hasImage) return;
+If escalation is needed, respond ONLY with:
 
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-    let prompt = `
-You are XZX HUB support staff.
-Help the user troubleshoot issues with XZX Hub.
-Ask clear follow-up questions.
-If key-related, give ONLY this link:
-https://xwre.vercel.app/api/key
-Never paste the raw key.
-If executor-related, ask which executor and device.
-If unsure, say staff will be notified.
+🚨 SUPPORT NEEDED
+@XZX SUPPORT TEAM
+Issue: <summary>
 `;
 
-    if (hasImage) {
-      prompt += "\nUser sent an image describing a problem. Analyze it.";
+/* ===============================
+   HELPERS
+================================ */
+async function getAIResponse(userMessage) {
+  const result = await model.generateContent([
+    SYSTEM_PROMPT,
+    userMessage
+  ]);
+  return result.response.text();
+}
+
+function shouldEscalate(message) {
+  const triggers = [
+    "still not working",
+    "doesn't work",
+    "doesnt work",
+    "tried everything",
+    "nothing works",
+    "same issue",
+    "error",
+    "crash",
+    "bug"
+  ];
+
+  return triggers.some(t =>
+    message.toLowerCase().includes(t)
+  );
+}
+
+/* ===============================
+   MESSAGE HANDLER
+================================ */
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  try {
+    // 1️⃣ AI tries to help first
+    const aiReply = await getAIResponse(message.content);
+    await message.reply(aiReply);
+
+    // 2️⃣ Escalate ONLY if needed
+    if (shouldEscalate(message.content)) {
+      await message.channel.send(
+`🚨 SUPPORT NEEDED
+@XZX SUPPORT TEAM
+Issue: ${message.content}`
+      );
     }
-
-    prompt += `\nUser message: "${message.content}"`;
-
-    const result = await model.generateContent(prompt);
-    const reply = result.response.text();
-
-    await message.reply(reply);
 
   } catch (err) {
     console.error(err);
-
     await message.reply(
-      `🚨 **SUPPORT NEEDED**  
-@XZX SUPPORT TEAM  
-**Issue:** ${message.content}`
+      "Something broke on my side 😅 I’ve alerted the support team."
+    );
+
+    await message.channel.send(
+`🚨 SUPPORT NEEDED
+@XZX SUPPORT TEAM
+Issue: Bot error while handling message`
     );
   }
 });
 
+/* ===============================
+   READY
+================================ */
+client.once("ready", () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+});
+
+/* ===============================
+   LOGIN
+================================ */
 client.login(process.env.DISCORD_TOKEN);
