@@ -1,23 +1,8 @@
-import "./server.js";
 import { Client, GatewayIntentBits } from "discord.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import OpenAI from "openai";
+import express from "express";
+import fetch from "node-fetch";
 
-/* =====================
-   ENV VARIABLES
-===================== */
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const GEMINI_KEY = process.env.GEMINI_KEY;
-const OPENAI_KEY = process.env.OPENAI_KEY;
-
-if (!DISCORD_TOKEN) {
-  console.error("❌ Missing DISCORD_TOKEN");
-  process.exit(1);
-}
-
-/* =====================
-   DISCORD CLIENT
-===================== */
+// ─── DISCORD SETUP ────────────────────────────────────────────
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -26,25 +11,8 @@ const client = new Client({
   ]
 });
 
-/* =====================
-   AI CLIENTS
-===================== */
-let gemini = null;
-let openai = null;
-
-if (GEMINI_KEY) {
-  gemini = new GoogleGenerativeAI(GEMINI_KEY)
-    .getGenerativeModel({ model: "gemini-pro" });
-}
-
-if (OPENAI_KEY) {
-  openai = new OpenAI({ apiKey: OPENAI_KEY });
-}
-
-/* =====================
-   CHANNELS
-===================== */
-const ALLOWED_CHANNELS = [
+// Channels the bot is allowed to respond in
+const HELP_CHANNELS = [
   "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂",
   "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂•slow",
   "💬•𝘾𝙃𝘼𝙏-𝙍𝙊𝙊𝙈v1",
@@ -53,72 +21,95 @@ const ALLOWED_CHANNELS = [
   "⚠️•𝘽𝙐𝙂-𝙍𝙀𝙋𝙊𝙍𝙏"
 ];
 
-/* =====================
-   AI HELP FUNCTION
-===================== */
-async function getAIResponse(userMessage) {
-  const prompt = `
-You are a Discord support assistant.
-Be helpful, clear, and try to solve the problem.
+// ─── KEEP ALIVE (RAILWAY / RENDER SAFE) ───────────────────────
+const app = express();
+app.get("/", (_, res) => res.send("Bot alive"));
+app.listen(8080, () =>
+  console.log("🌐 Keep-alive server running on port 8080")
+);
 
-User message:
-"${userMessage}"
-`;
+// ─── AI PROVIDERS ─────────────────────────────────────────────
+async function askOpenAI(prompt) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7
+    })
+  });
 
-  /* ---- Try Gemini first ---- */
-  if (gemini) {
-    try {
-      const res = await gemini.generateContent(prompt);
-      const text = res.response.text();
-      if (text && text.length > 5) return text;
-    } catch (e) {
-      console.warn("⚠️ Gemini failed");
-    }
+  if (!res.ok) throw new Error("OpenAI request failed");
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+async function askDeepSeek(prompt) {
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7
+    })
+  });
+
+  if (!res.ok) throw new Error("DeepSeek request failed");
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+// ─── FALLBACK LOGIC ───────────────────────────────────────────
+async function getAIResponse(prompt) {
+  try {
+    return await askOpenAI(prompt);
+  } catch (err) {
+    console.log("⚠️ OpenAI failed, switching to DeepSeek");
   }
 
-  /* ---- Fallback to OpenAI ---- */
-  if (openai) {
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }]
-      });
-      return completion.choices[0].message.content;
-    } catch (e) {
-      console.warn("⚠️ OpenAI failed");
-    }
+  try {
+    return await askDeepSeek(prompt);
+  } catch (err) {
+    console.log("⚠️ DeepSeek failed");
   }
 
-  /* ---- Both failed ---- */
   return null;
 }
 
-/* =====================
-   READY
-===================== */
-client.once("ready", () => {
-  console.log(`✅ Bot online as ${client.user.tag}`);
-});
-
-/* =====================
-   MESSAGE HANDLER
-===================== */
+// ─── MESSAGE HANDLER ──────────────────────────────────────────
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-  if (!ALLOWED_CHANNELS.includes(message.channel.name)) return;
+  if (!HELP_CHANNELS.includes(message.channel.name)) return;
 
-  const aiReply = await getAIResponse(message.content);
+  const looksLikeHelp =
+    /(help|error|bug|not working|broken|issue)/i.test(message.content);
 
-  if (aiReply) {
-    await message.reply(aiReply.slice(0, 1900));
+  if (!looksLikeHelp) return;
+
+  const response = await getAIResponse(message.content);
+
+  if (response) {
+    await message.reply(response);
   } else {
     await message.reply(
-      "🚨 **SUPPORT NEEDED**\n@XZX SUPPORT TEAM\n**Issue:** Bot failed to process a message"
+      `🚨 **SUPPORT NEEDED**\n<@&${process.env.SUPPORT_ROLE_ID}>\n**Issue:** AI providers unavailable`
     );
   }
 });
 
-/* =====================
-   LOGIN
-===================== */
-client.login(DISCORD_TOKEN);
+// ─── READY EVENT (DISCORD.JS v14 SAFE) ────────────────────────
+client.once("clientReady", () => {
+  console.log(`✅ Bot online as ${client.user.tag}`);
+});
+
+client.login(process.env.DISCORD_TOKEN);
