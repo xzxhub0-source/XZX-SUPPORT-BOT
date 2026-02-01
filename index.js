@@ -1,7 +1,48 @@
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-// ================= CONFIG =================
+/* =====================
+   ENV VARIABLES
+===================== */
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const GEMINI_KEY = process.env.GEMINI_KEY;
+const OPENAI_KEY = process.env.OPENAI_KEY;
+
+if (!DISCORD_TOKEN) {
+  console.error("❌ Missing DISCORD_TOKEN");
+  process.exit(1);
+}
+
+/* =====================
+   DISCORD CLIENT
+===================== */
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+/* =====================
+   AI CLIENTS
+===================== */
+let gemini = null;
+let openai = null;
+
+if (GEMINI_KEY) {
+  gemini = new GoogleGenerativeAI(GEMINI_KEY)
+    .getGenerativeModel({ model: "gemini-pro" });
+}
+
+if (OPENAI_KEY) {
+  openai = new OpenAI({ apiKey: OPENAI_KEY });
+}
+
+/* =====================
+   CHANNELS
+===================== */
 const ALLOWED_CHANNELS = [
   "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂",
   "🔀•𝙏𝙍𝘼𝘿𝙄𝙉𝙂•slow",
@@ -11,83 +52,72 @@ const ALLOWED_CHANNELS = [
   "⚠️•𝘽𝙐𝙂-𝙍𝙀𝙋𝙊𝙍𝙏"
 ];
 
-const SUPPORT_PING = "@XZX SUPPORT TEAM";
+/* =====================
+   AI HELP FUNCTION
+===================== */
+async function getAIResponse(userMessage) {
+  const prompt = `
+You are a Discord support assistant.
+Be helpful, clear, and try to solve the problem.
 
-// ================= CLIENT =================
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ],
-  partials: [Partials.Channel]
-});
+User message:
+"${userMessage}"
+`;
 
-// ================= GEMINI =================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  /* ---- Try Gemini first ---- */
+  if (gemini) {
+    try {
+      const res = await gemini.generateContent(prompt);
+      const text = res.response.text();
+      if (text && text.length > 5) return text;
+    } catch (e) {
+      console.warn("⚠️ Gemini failed");
+    }
+  }
 
-// ================= READY =================
+  /* ---- Fallback to OpenAI ---- */
+  if (openai) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      });
+      return completion.choices[0].message.content;
+    } catch (e) {
+      console.warn("⚠️ OpenAI failed");
+    }
+  }
+
+  /* ---- Both failed ---- */
+  return null;
+}
+
+/* =====================
+   READY
+===================== */
 client.once("ready", () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`✅ Bot online as ${client.user.tag}`);
 });
 
-// ================= MESSAGE HANDLER =================
+/* =====================
+   MESSAGE HANDLER
+===================== */
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!ALLOWED_CHANNELS.includes(message.channel.name)) return;
 
-  const content = message.content.toLowerCase();
+  const aiReply = await getAIResponse(message.content);
 
-  // 🔹 Only escalate if message clearly asks for staff
-  const needsStaff =
-    content.includes("staff") ||
-    content.includes("support team") ||
-    content.includes("admin");
-
-  try {
-    // 🔹 If message looks like a real issue, AI helps first
-    const looksLikeIssue =
-      content.includes("help") ||
-      content.includes("error") ||
-      content.includes("key") ||
-      content.includes("not working") ||
-      content.includes("doesn’t work") ||
-      content.includes("didn't work") ||
-      message.attachments.size > 0;
-
-    if (!looksLikeIssue) return;
-
-    // 🧠 Gemini prompt (ACTUAL HELP LOGIC)
-    const prompt = `
-You are a Discord support assistant for XZX HUB.
-Help the user fix their issue clearly and step-by-step.
-If the issue is unclear, ask follow-up questions.
-DO NOT say you pinged staff unless absolutely necessary.
-
-User message:
-"${message.content}"
-`;
-
-    const result = await model.generateContent(prompt);
-    const reply = result.response.text().slice(0, 1900);
-
-    await message.reply(reply);
-
-    // 🚨 Escalate ONLY if explicitly needed
-    if (needsStaff) {
-      await message.channel.send(
-        `🚨 **SUPPORT NEEDED**\n${SUPPORT_PING}\n**Issue:** ${message.content}`
-      );
-    }
-  } catch (err) {
-    console.error("AI ERROR:", err);
-
-    await message.channel.send(
-      `🚨 **SUPPORT NEEDED**\n${SUPPORT_PING}\n**Issue:** Bot failed to process a message`
+  if (aiReply) {
+    await message.reply(aiReply.slice(0, 1900));
+  } else {
+    await message.reply(
+      "🚨 **SUPPORT NEEDED**\n@XZX SUPPORT TEAM\n**Issue:** Bot failed to process a message"
     );
   }
 });
 
-// ================= LOGIN =================
-client.login(process.env.DISCORD_TOKEN);
+/* =====================
+   LOGIN
+===================== */
+client.login(DISCORD_TOKEN);
