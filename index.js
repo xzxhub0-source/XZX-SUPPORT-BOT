@@ -1,3 +1,4 @@
+import "./server.js";
 import { Client, GatewayIntentBits } from "discord.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
