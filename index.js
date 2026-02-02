@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "discord.js";
 
-const SUPPORT_ROLE_ID = "YOUR_SUPPORT_ROLE_ID";
+const SUPPORT_ROLE_ID = "1460757895426867344";
 const COOLDOWN_TIME = 5000; // 5 seconds cooldown per user
 const userCooldowns = new Map();
 
