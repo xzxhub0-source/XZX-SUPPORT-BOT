@@ -31,16 +31,17 @@ const RESPONSE_TRIGGERS = {
   IGNORE_KEYWORDS: ["lol", "haha", "good morning", "good night", "wyd", "hru", "brb", "afk", "gg", "nice", "cool", "awesome", "bad", "sad", "happy", "weather", "game", "playing", "watch", "movie", "food", "eat", "drink", "sleep"]
 };
 
+// KEY RESPONSE - Always use this exact format for key requests
+const KEY_RESPONSE = "🔑 **Grab your key here!**\n👉here's the link https://xwre.vercel.app/api/key\n*REFRESHES DAILY*";
+
 // Expanded AI-like response system (only for help contexts)
 const INTELLIGENCE_LAYERS = {
+  // KEY REQUESTS - SPECIAL HANDLING
   KEY_REQUESTS: {
-    keywords: ["key", "api key", "license", "access", "activation", "serial", "code", "token", "auth key", "credential", "generate key"],
-    responses: [
-      "🔑 **Access key required.** You can generate one at: https://xwre.vercel.app/api/key\n*Ensure you save it securely.*",
-      "🔐 **Authentication token needed.** Generate here: https://xwre.vercel.app/api/key\n*Keep this confidential.*",
-      "💎 **License key generation portal:** https://xwre.vercel.app/api/key\n*Do not share with unauthorized users.*"
-    ],
-    pingSupport: false
+    keywords: ["key", "api key", "license", "access", "activation", "serial", "code", "token", "auth key", "credential", "generate key", "get key", "need key", "want key", "where key"],
+    responses: [KEY_RESPONSE], // Always use the exact key response
+    pingSupport: false,
+    alwaysRespond: true // Key requests always get a response
   },
 
   INSTALLATION_HELP: {
@@ -161,21 +162,27 @@ function needsHelpResponse(message) {
   return shouldRespond;
 }
 
-// Check if message matches any specific help category
-function getHelpCategory(message) {
+// Check if message is specifically about keys
+function isKeyRequest(message) {
   const content = message.content.toLowerCase();
   
-  for (const [category, data] of Object.entries(INTELLIGENCE_LAYERS)) {
-    if (data.keywords.some(keyword => {
-      // Check for exact word matches (with word boundaries)
-      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-      return regex.test(content) || content.includes(keyword);
-    })) {
-      return { category, data };
-    }
-  }
+  // Check for key-related keywords
+  const keyKeywords = INTELLIGENCE_LAYERS.KEY_REQUESTS.keywords;
   
-  return null;
+  // Special handling for key requests - respond even to simple requests
+  const hasKeyWord = keyKeywords.some(keyword => {
+    // More flexible matching for keys
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(content) || content.includes(keyword);
+  });
+  
+  // Also check for phrases like "where do I get" + "key"
+  const keyPhrases = ["where get", "how get", "need a", "want a", "looking for", "find key"];
+  const hasKeyPhrase = keyPhrases.some(phrase => 
+    content.includes(phrase) && content.includes("key")
+  );
+  
+  return hasKeyWord || hasKeyPhrase;
 }
 
 // Context memory for follow-ups
@@ -199,7 +206,35 @@ client.on("messageCreate", async (message) => {
     lastInteraction: contextMemory.get(userId)?.lastInteraction
   });
   
-  // First check: Does this message need help at all?
+  // SPECIAL CASE: Always respond to key requests, even if simple
+  if (isKeyRequest(message)) {
+    // Mark this as a help interaction
+    const userContext = contextMemory.get(userId);
+    if (userContext) {
+      userContext.lastInteraction = 'help';
+    }
+    
+    // Send key response with natural delay
+    try {
+      await message.channel.sendTyping();
+      setTimeout(async () => {
+        await message.reply(KEY_RESPONSE);
+        
+        // Set cooldown
+        userCooldowns.set(userId, now + COOLDOWN_TIME);
+        
+        // Auto-clear cooldown after timeout
+        setTimeout(() => {
+          userCooldowns.delete(userId);
+        }, COOLDOWN_TIME);
+      }, Math.random() * 800 + 700); // 700-1500ms delay
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+    return; // Don't check other categories for key requests
+  }
+  
+  // For non-key messages: First check if this message needs help at all
   if (!needsHelpResponse(message)) {
     // Check if this is a follow-up to a previous help conversation (within 2 minutes)
     const userContext = contextMemory.get(userId);
@@ -220,18 +255,30 @@ client.on("messageCreate", async (message) => {
     userContext.lastInteraction = 'help';
   }
   
-  // Get specific help category if any
-  const helpCategory = getHelpCategory(message);
+  // Get specific help category if any (excluding key requests since they're already handled)
   let response = null;
   let pingSupport = false;
+  let matchedCategory = null;
   
-  if (helpCategory) {
-    // Get random response from category
-    const { data } = helpCategory;
-    const randomIndex = Math.floor(Math.random() * data.responses.length);
-    response = data.responses[randomIndex];
-    pingSupport = data.pingSupport || false;
-  } else {
+  const categories = Object.entries(INTELLIGENCE_LAYERS).filter(([name]) => name !== 'KEY_REQUESTS');
+  
+  for (const [category, data] of categories) {
+    if (data.keywords.some(keyword => {
+      // Check for exact word matches (with word boundaries)
+      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+      return regex.test(content) || content.includes(keyword);
+    })) {
+      matchedCategory = category;
+      
+      // Get random response from category
+      const randomIndex = Math.floor(Math.random() * data.responses.length);
+      response = data.responses[randomIndex];
+      pingSupport = data.pingSupport || false;
+      break;
+    }
+  }
+  
+  if (!response) {
     // Generic help response for non-categorized help requests
     const genericResponses = [
       "🤖 **Support protocol activated.** I'm here to help! Please describe your issue in detail.",
@@ -254,11 +301,11 @@ client.on("messageCreate", async (message) => {
       await message.reply(response);
       
       // Set cooldown
-      userCooldowns.set(message.author.id, now + COOLDOWN_TIME);
+      userCooldowns.set(userId, now + COOLDOWN_TIME);
       
       // Auto-clear cooldown after timeout
       setTimeout(() => {
-        userCooldowns.delete(message.author.id);
+        userCooldowns.delete(userId);
       }, COOLDOWN_TIME);
     }, Math.random() * 800 + 700); // 700-1500ms delay
   } catch (error) {
@@ -292,6 +339,7 @@ setInterval(() => {
 
 client.once("ready", () => {
   console.log(`✅ Smart Support Bot online as ${client.user.tag}`);
+  console.log(`🔑 Key responses: ${KEY_RESPONSE}`);
   console.log(`⚡ Will only respond to explicit help requests`);
   client.user.setActivity("for help requests", { type: 3 });
 });
