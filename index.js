@@ -1,7 +1,7 @@
 import { Client, GatewayIntentBits } from "discord.js";
 
-const SUPPORT_ROLE_ID = "YOUR_SUPPORT_ROLE_ID";
-const COOLDOWN_TIME = 5000; // 5 seconds cooldown per user
+const SUPPORT_ROLE_ID = "1460757895426867344";
+const COOLDOWN_TIME = 3000; // 3 seconds cooldown per user
 const userCooldowns = new Map();
 
 const client = new Client({
@@ -34,8 +34,8 @@ const RESPONSE_TRIGGERS = {
 // KEY RESPONSE - Always use this exact format for key requests
 const KEY_RESPONSE = "🔑 **Grab your key here!**\n👉here's the link https://xwre.vercel.app/api/key\n*REFRESHES DAILY*";
 
-// XZX HUB CODE RESPONSE
-const XZX_HUB_CODE = `Here's the XZX Hub code to help you:
+// XZX HUB CODE RESPONSE (Trimmed for Discord character limit)
+const XZX_HUB_CODE = `**XZX HUB - Complete Working Script**
 
 \`\`\`lua
 -- XZX HUB - STEAL A BRAINROT | COMPLETE WORKING SCRIPT
@@ -224,7 +224,6 @@ local SecretBrainrotNames = {
 }
 
 local BrainrotFinderConfig = {
-    webhook_url = "https://discord.com/api/webhooks/1434196175124303972/wZxi86RCfk2dY1UabKcymLT6gEV9TQTOumh97lfRRWAULv9_fVQIo64KbfbkfWy_WMRc",
     brainrots_to_find = {},
     hop_after_brainrot_left = true
 }
@@ -2507,36 +2506,28 @@ if featureStates.AutoKickEnabled then toggleAutoKickFeature(true) end
 if featureStates.AllowDisallowEnabled then toggleAllowDisallowFeature(true) end
 \`\`\`
 
-**Usage instructions:**
+**Instructions:**
 1. Copy this entire script
-2. Open Roblox Studio or your preferred executor
-3. Paste and run the script
-4. Press F5 to toggle the menu
+2. Open Roblox executor
+3. Paste and run
+4. Press F5 to toggle menu
 
 **Features included:**
-- Auto Respawn (Desync)
-- ESP & Mini Map
-- Speed/Gravity/Jump Boosts
-- XZX Platform & Wall Climb
-- Brainrot Spawner & Finder
-- FPS Killer & Lazer Spam
-- Paintball Spam & Auto Kick
-- X-Ray vision
-- Anti-AFK system`;
+✅ Auto Respawn (Desync) • ESP & Mini Map • Speed/Gravity/Jump Boosts • XZX Platform & Wall Climb • Brainrot Spawner & Finder • FPS Killer & Lazer Spam • Paintball Spam & Auto Kick • X-Ray • Anti-AFK`;
 
 // Expanded AI-like response system (only for help contexts)
 const INTELLIGENCE_LAYERS = {
   // KEY REQUESTS - SPECIAL HANDLING
   KEY_REQUESTS: {
-    keywords: ["key", "api key", "license", "access", "activation", "serial", "code", "token", "auth key", "credential", "generate key", "get key", "need key", "want key", "where key"],
-    responses: [KEY_RESPONSE], // Always use the exact key response
+    keywords: ["key", "api key", "license", "access", "activation", "serial", "code", "token", "auth key", "credential", "generate key", "get key", "need key", "want key", "where key", "key please"],
+    responses: [KEY_RESPONSE],
     pingSupport: false,
-    alwaysRespond: true // Key requests always get a response
+    alwaysRespond: true
   },
 
   // XZX HUB ISSUES - SPECIAL HANDLING
   XZX_HUB_ISSUES: {
-    keywords: ["xzx", "xzx hub", "xzx problem", "xzx not working", "xzx error", "xzx broken", "xzx script", "xzx code", "steal a brainrot", "brainrot hub", "xzx hub code", "xzx hub script", "xzx hub not working"],
+    keywords: ["xzx", "xzx hub", "xzx problem", "xzx not working", "xzx error", "xzx broken", "xzx script", "xzx code", "steal a brainrot", "brainrot hub", "xzx hub code", "xzx hub script", "xzx hub not working", "xzx download", "xzx pastebin", "xzx script paste", "xzx script download"],
     responses: [XZX_HUB_CODE],
     pingSupport: false,
     alwaysRespond: true
@@ -2545,8 +2536,8 @@ const INTELLIGENCE_LAYERS = {
   INSTALLATION_HELP: {
     keywords: ["install", "setup", "download", "configure", "implementation", "deploy", "run", "execute", "launch", "init", "get started"],
     responses: [
-      "📦 **Installation protocol initiated.** Ensure you:\n1. Downloaded from official source\n2. Have correct dependencies\n3. Followed setup documentation\n*Where are you encountering issues?*",
-      "⚙️ **System configuration required.** Please verify:\n- System requirements met\n- Proper permissions set\n- Network connectivity established\n*Specify your operating system.*"
+      "📦 **Installation help**\nMake sure you followed all installation steps correctly.\nIf you're stuck, explain what step failed.",
+      "⚙️ **Setup assistance**\nPlease verify system requirements and proper permissions are set."
     ],
     pingSupport: false
   },
@@ -2554,8 +2545,8 @@ const INTELLIGENCE_LAYERS = {
   ERROR_HANDLING: {
     keywords: ["error", "not working", "broken", "failed", "doesnt work", "crash", "bug", "issue", "problem", "malfunction", "exception", "fault", "fix", "repair", "solve"],
     responses: [
-      "⚠️ **Anomaly detected.** Please provide:\n1. Exact error message\n2. Steps to reproduce\n3. Screenshot if possible\n*Analyzing...*",
-      "🔍 **Diagnostic mode activated.** I need:\n- Error code/traceback\n- When it occurs\n- What you were doing\n*Processing parameters...*"
+      "⚠️ **Issue detected**\nPlease describe what happened and include any error messages.",
+      "🔍 **Problem identified**\nShare the exact error and what you were doing when it occurred."
     ],
     pingSupport: true
   },
@@ -2563,8 +2554,8 @@ const INTELLIGENCE_LAYERS = {
   AUTHENTICATION: {
     keywords: ["login", "token", "invalid", "auth", "password", "sign in", "authentication", "credentials", "unauthorized", "access denied", "cannot log in"],
     responses: [
-      "🔒 **Authentication failure detected.** Verify:\n1. Token/key is current\n2. No extra spaces in copy\n3. Correct authentication endpoint\n*Security protocols active.*",
-      "🛡️ **Security check failed.** Ensure:\n- Token hasn't expired\n- Proper format used\n- Account has necessary permissions\n*Re-authenticating...*"
+      "🔒 **Authentication issue**\nMake sure your token/key is valid and copied correctly.",
+      "🛡️ **Login problem**\nVerify your credentials are current and properly formatted."
     ],
     pingSupport: true
   },
@@ -2572,8 +2563,8 @@ const INTELLIGENCE_LAYERS = {
   UPDATES_INFO: {
     keywords: ["when update", "how long update", "eta", "new version", "upcoming feature", "roadmap", "release date", "when will", "coming soon", "next update"],
     responses: [
-      "⏳ **Temporal analysis:** Updates are being deployed incrementally. Follow announcements for exact timelines.",
-      "📅 **Development timeline:** Features undergo testing before release. No exact ETA, but progress is continuous."
+      "⏳ **Update info**\nUpdates are being worked on and will be announced soon.",
+      "📅 **Development update**\nNew features release when stable. No exact ETA available."
     ],
     pingSupport: false
   },
@@ -2581,8 +2572,8 @@ const INTELLIGENCE_LAYERS = {
   GENERAL_HELP: {
     keywords: ["help me", "confused", "idk", "how do i", "what should", "can you help", "assist me", "support needed", "need guidance", "stuck on"],
     responses: [
-      "🤔 **Processing request for assistance.** Please describe:\n1. Your goal\n2. What you've tried\n3. Where you're stuck\n*Neural networks analyzing...*",
-      "💡 **Illumination protocol:** I can help with:\n- Technical issues\n- Setup guidance\n- Best practices\n*What specifically?*"
+      "🤔 **No worries**\nExplain what you're trying to do and we'll help you out.",
+      "💡 **Need assistance**\nPlease describe your issue in detail for better help."
     ],
     pingSupport: true
   },
@@ -2590,8 +2581,8 @@ const INTELLIGENCE_LAYERS = {
   ACCESS_ISSUES: {
     keywords: ["banned", "blacklisted", "denied", "no access", "suspended", "restricted", "blocked", "terminated", "revoked", "cannot access"],
     responses: [
-      "🚫 **Access violation detected.** Possible reasons:\n- Terms of service breach\n- Suspicious activity\n- Key sharing violation\n*Review guidelines.*",
-      "🔒 **Account restriction active.** Contact support with:\n1. Your user ID\n2. Time of restriction\n3. Appeal reasoning\n*Processing...*"
+      "🚫 **Access issue**\nAccess may be restricted due to rule violations or invalid keys.",
+      "🔒 **Account restricted**\nContact support with your user ID and time of restriction."
     ],
     pingSupport: true
   },
@@ -2600,7 +2591,7 @@ const INTELLIGENCE_LAYERS = {
     keywords: ["status", "online", "offline", "working", "down", "maintenance", "server", "service", "availability", "is it down", "server status"],
     responses: [
       "📊 **System status:** All systems operational. No reported outages.",
-      "✅ **Service check:** All endpoints responding normally within expected parameters."
+      "✅ **Service check:** All endpoints responding normally."
     ],
     pingSupport: false
   },
@@ -2608,8 +2599,8 @@ const INTELLIGENCE_LAYERS = {
   SPECIFIC_QUESTIONS: {
     keywords: ["what is", "how does", "why does", "where to", "which one", "can i use", "is there a", "does this work with", "compatible with"],
     responses: [
-      "🎯 **Specific query detected.** Could you provide more details about your use case?",
-      "🔍 **Detailed question received.** I need more context to give an accurate answer."
+      "🎯 **Specific query**\nCould you provide more details about your use case?",
+      "🔍 **Question received**\nNeed more context to give an accurate answer."
     ],
     pingSupport: false
   }
@@ -2620,7 +2611,7 @@ function needsHelpResponse(message) {
   const content = message.content.toLowerCase();
   
   // Don't respond to very short messages (likely social)
-  if (content.length < 5) return false;
+  if (content.length < 4) return false;
   
   // Don't respond to URLs only
   if (content.match(/^https?:\/\/\S+$/)) return false;
@@ -2634,7 +2625,7 @@ function needsHelpResponse(message) {
   
   // Check for explicit help requests
   const hasHelpKeyword = RESPONSE_TRIGGERS.HELP_KEYWORDS.some(keyword => 
-    content.includes(keyword) && content.length > 10 // Ensure it's not just "help"
+    content.includes(keyword) && content.length > 8
   );
   
   // Check for questions
@@ -2649,13 +2640,13 @@ function needsHelpResponse(message) {
   
   // Check for technical terms (in context of needing help)
   const hasTechnicalKeyword = RESPONSE_TRIGGERS.TECHNICAL_KEYWORDS.some(keyword =>
-    content.includes(keyword) && (hasQuestionWord || content.length > 15)
+    content.includes(keyword) && (hasQuestionWord || content.length > 12)
   );
   
   // Must have at least one trigger AND not be obviously social
   const shouldRespond = (hasHelpKeyword || hasProblemKeyword || 
                         (hasQuestionWord && hasTechnicalKeyword) ||
-                        (hasTechnicalKeyword && content.length > 20));
+                        (hasTechnicalKeyword && content.length > 15));
   
   return shouldRespond;
 }
@@ -2691,13 +2682,12 @@ function isKeyRequest(message) {
   
   // Special handling for key requests - respond even to simple requests
   const hasKeyWord = keyKeywords.some(keyword => {
-    // More flexible matching for keys
     const regex = new RegExp(`\\b${keyword}\\b`, 'i');
     return regex.test(content) || content.includes(keyword);
   });
   
   // Also check for phrases like "where do I get" + "key"
-  const keyPhrases = ["where get", "how get", "need a", "want a", "looking for", "find key"];
+  const keyPhrases = ["where get", "how get", "need a", "want a", "looking for", "find key", "key pls", "key please"];
   const hasKeyPhrase = keyPhrases.some(phrase => 
     content.includes(phrase) && content.includes("key")
   );
@@ -2734,20 +2724,17 @@ client.on("messageCreate", async (message) => {
       userContext.lastInteraction = 'help';
     }
     
-    // Send XZX Hub code response
+    // Send XZX Hub code response IMMEDIATELY
     try {
-      await message.channel.sendTyping();
-      setTimeout(async () => {
-        await message.reply(XZX_HUB_CODE);
-        
-        // Set cooldown
-        userCooldowns.set(userId, now + COOLDOWN_TIME);
-        
-        // Auto-clear cooldown after timeout
-        setTimeout(() => {
-          userCooldowns.delete(userId);
-        }, COOLDOWN_TIME);
-      }, Math.random() * 800 + 700); // 700-1500ms delay
+      await message.reply(XZX_HUB_CODE);
+      
+      // Set cooldown
+      userCooldowns.set(userId, now + COOLDOWN_TIME);
+      
+      // Auto-clear cooldown after timeout
+      setTimeout(() => {
+        userCooldowns.delete(userId);
+      }, COOLDOWN_TIME);
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -2762,20 +2749,17 @@ client.on("messageCreate", async (message) => {
       userContext.lastInteraction = 'help';
     }
     
-    // Send key response
+    // Send key response IMMEDIATELY
     try {
-      await message.channel.sendTyping();
-      setTimeout(async () => {
-        await message.reply(KEY_RESPONSE);
-        
-        // Set cooldown
-        userCooldowns.set(userId, now + COOLDOWN_TIME);
-        
-        // Auto-clear cooldown after timeout
-        setTimeout(() => {
-          userCooldowns.delete(userId);
-        }, COOLDOWN_TIME);
-      }, Math.random() * 800 + 700); // 700-1500ms delay
+      await message.reply(KEY_RESPONSE);
+      
+      // Set cooldown
+      userCooldowns.set(userId, now + COOLDOWN_TIME);
+      
+      // Auto-clear cooldown after timeout
+      setTimeout(() => {
+        userCooldowns.delete(userId);
+      }, COOLDOWN_TIME);
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -2831,10 +2815,9 @@ client.on("messageCreate", async (message) => {
   if (!response) {
     // Generic help response for non-categorized help requests
     const genericResponses = [
-      "🤖 **Support protocol activated.** I'm here to help! Please describe your issue in detail.",
-      "🔍 **Analyzing request...** Could you provide more specifics about what you need assistance with?",
-      "💡 **General assistance mode.** What seems to be the problem? The more details you provide, the better I can help.",
-      "🎯 **Help request received.** Please explain:\n1. What you're trying to do\n2. What's happening instead\n3. Any error messages"
+      "💬 **Message received**\nIf you need help, explain the issue and support will assist you.",
+      "🤖 **I'm here to help!**\nPlease describe your technical issue or question.",
+      "🔍 **Need assistance?**\nExplain what you're trying to do and where you're stuck."
     ];
     response = genericResponses[Math.floor(Math.random() * genericResponses.length)];
   }
@@ -2844,20 +2827,17 @@ client.on("messageCreate", async (message) => {
     response += `\n\n📣 <@&${SUPPORT_ROLE_ID}>`;
   }
   
-  // Send response with natural delay
+  // Send response IMMEDIATELY (no delay)
   try {
-    await message.channel.sendTyping();
-    setTimeout(async () => {
-      await message.reply(response);
-      
-      // Set cooldown
-      userCooldowns.set(userId, now + COOLDOWN_TIME);
-      
-      // Auto-clear cooldown after timeout
-      setTimeout(() => {
-        userCooldowns.delete(userId);
-      }, COOLDOWN_TIME);
-    }, Math.random() * 800 + 700); // 700-1500ms delay
+    await message.reply(response);
+    
+    // Set cooldown
+    userCooldowns.set(userId, now + COOLDOWN_TIME);
+    
+    // Auto-clear cooldown after timeout
+    setTimeout(() => {
+      userCooldowns.delete(userId);
+    }, COOLDOWN_TIME);
   } catch (error) {
     console.error("Error sending message:", error);
   }
@@ -2877,9 +2857,9 @@ setInterval(() => {
 setInterval(() => {
   if (client.user) {
     const statuses = [
-      "Monitoring for help requests",
       "Ready to share XZX Hub code",
       "Awaiting key requests",
+      "Monitoring for help requests",
       "Standing by for technical issues"
     ];
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
@@ -2889,10 +2869,10 @@ setInterval(() => {
 
 client.once("ready", () => {
   console.log(`✅ Smart Support Bot online as ${client.user.tag}`);
-  console.log(`🔑 Key responses: ${KEY_RESPONSE}`);
-  console.log(`🎮 XZX Hub code ready to share`);
-  console.log(`⚡ Will only respond to explicit help requests`);
-  client.user.setActivity("for XZX Hub issues & key requests", { type: 3 });
+  console.log(`🔑 Key responses ready`);
+  console.log(`🎮 XZX Hub code ready`);
+  console.log(`⚡ Immediate reply mode active`);
+  client.user.setActivity("for XZX Hub & key requests", { type: 3 });
 });
 
 client.login(process.env.DISCORD_TOKEN);
